@@ -1,0 +1,9 @@
+# never commit pulled data or credentials
+raw/
+data/
+*.parquet
+*.csv
+.env
+.aws/
+__pycache__/
+*.pyc
