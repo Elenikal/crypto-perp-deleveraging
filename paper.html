@@ -1,0 +1,294 @@
+<title>Leverage Before the Crash</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+/* Single column working paper: verdict first, then the two figures it rests on. */
+:root{
+  --bg:#f3f5f7; --paper:#ffffff; --line:#dee3e9; --line2:#eef1f4;
+  --fg:#101520; --muted:#5a6675; --accent:#3f3ba8;
+  --forced:#b2452c; --other:#5d6b7c;
+  --ok:#276b47; --ok-bg:#e4f0e9; --mid:#9a6408; --mid-bg:#f8eeda;
+  --nil:#5a6675; --nil-bg:#e8ecf0;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1117; --paper:#151b23; --line:#262f3b; --line2:#1d242d;
+  --fg:#e3e8ee; --muted:#8e9aa9; --accent:#9a95f0;
+  --forced:#e98b70; --other:#93a2b3;
+  --ok:#5cc08b; --ok-bg:#132a1f; --mid:#dfa94e; --mid-bg:#2d2415;
+  --nil:#8e9aa9; --nil-bg:#1e2630; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0d1117; --paper:#151b23; --line:#262f3b; --line2:#1d242d;
+  --fg:#e3e8ee; --muted:#8e9aa9; --accent:#9a95f0;
+  --forced:#e98b70; --other:#93a2b3;
+  --ok:#5cc08b; --ok-bg:#132a1f; --mid:#dfa94e; --mid-bg:#2d2415;
+  --nil:#8e9aa9; --nil-bg:#1e2630; color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--serif);
+  margin:0;padding-block:28px 48px;padding-inline:16px;line-height:1.55;font-size:16px}
+.wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.12;margin:0;font-weight:700;
+  letter-spacing:-.02em;text-wrap:balance}
+.lede{font-size:18px;color:var(--muted);margin:10px 0 0;max-width:62ch}
+.stamp{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-top:14px}
+h2{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 12px;font-weight:600}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:20px;min-width:0}
+
+.find{display:flex;gap:14px;padding:16px 0;border-top:1px solid var(--line2)}
+.find:first-of-type{border-top:0;padding-top:4px}
+.chip{flex:0 0 auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;
+  text-transform:uppercase;padding:3px 8px;border-radius:3px;font-weight:600;
+  align-self:flex-start;margin-top:4px;white-space:nowrap}
+.c-ok{background:var(--ok-bg);color:var(--ok)}
+.c-mid{background:var(--mid-bg);color:var(--mid)}
+.c-nil{background:var(--nil-bg);color:var(--nil)}
+.find h3{font-size:17px;margin:0 0 4px;font-weight:600;line-height:1.3}
+.find p{margin:0;font-size:15px;color:var(--muted)}
+.stat{font-family:var(--mono);font-size:13px;color:var(--fg);
+  font-variant-numeric:tabular-nums;margin-top:7px;display:block}
+
+figure{margin:0}
+figcaption{font-size:14px;color:var(--muted);margin-top:12px;max-width:62ch}
+svg{display:block;width:100%;height:auto;overflow:visible}
+/* chart marks take their colour from tokens, so a theme switch restyles them */
+.g-line{stroke:var(--line);fill:none}
+.g-mark{stroke:var(--muted);fill:none;stroke-dasharray:3 3}
+.g-shade{fill:var(--accent);opacity:.07}
+.g-txt{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.g-txt-fg{fill:var(--fg);font-family:var(--mono);font-size:11.5px}
+.g-val{fill:var(--fg);font-family:var(--mono);font-size:11.5px;font-weight:600}
+.s-forced{stroke:var(--forced);fill:none;stroke-width:2.2;stroke-linejoin:round}
+.s-other{stroke:var(--other);fill:none;stroke-width:2.2;stroke-linejoin:round}
+.d-forced{fill:var(--forced)}
+.d-other{fill:var(--other)}
+.bar{fill:var(--forced)}
+.key{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;margin-bottom:12px}
+.key i{display:inline-block;width:18px;height:2.5px;vertical-align:middle;margin-right:6px}
+
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:12.5px}
+th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);font-weight:500}
+td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line2);
+  font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.neg{color:var(--forced)}
+.dim{color:var(--muted)}
+
+.live{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.lv{background:var(--paper);padding:11px 13px}
+.lv .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.lv .v{font-family:var(--mono);font-size:19px;margin-top:3px;font-variant-numeric:tabular-nums}
+footer{font-size:14px;color:var(--muted);max-width:64ch}
+footer p{margin:0 0 10px}
+footer b{color:var(--fg);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;background:var(--paper);
+  border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+</style>
+
+<div class="wrap">
+
+<header>
+  <h1>Leverage Before the Crash</h1>
+  <p class="lede">When a crypto market falls hard, how much of it is the margin engine
+  rather than the news? Open interest destroyed during the fall is the trace forced
+  selling leaves behind.</p>
+  <div class="stamp" id="stamp">loading...</div>
+</header>
+
+<section class="panel" id="findings"><h2>What the data says</h2>
+  <div class="dim" style="font-family:var(--mono);font-size:12px">reading results...</div>
+</section>
+
+<figure class="panel">
+  <h2>Figure 1. Price path around the worst drawdowns</h2>
+  <div class="key">
+    <span><i style="background:var(--forced)"></i>heaviest deleveraging</span>
+    <span><i style="background:var(--other)"></i>lightest deleveraging</span>
+  </div>
+  <svg id="fig1" viewBox="0 0 700 320" role="img" aria-label="Cumulative return around drawdown episodes"></svg>
+  <figcaption id="cap1"></figcaption>
+</figure>
+
+<figure class="panel">
+  <h2>Figure 2. Leverage going in, open interest destroyed coming out</h2>
+  <svg id="fig2" viewBox="0 0 700 300" role="img" aria-label="Open interest destroyed by pre-episode leverage quintile"></svg>
+  <figcaption id="cap2"></figcaption>
+</figure>
+
+<section class="panel"><h2>Robustness of the main result</h2>
+  <div class="scroll"><table id="robust"></table></div>
+</section>
+
+<section class="panel"><h2>Deepest episodes in the sample</h2>
+  <div class="scroll"><table id="worst"></table></div>
+</section>
+
+<section class="panel"><h2>Live conditions. Hyperliquid</h2>
+  <div class="live" id="live"><div class="lv"><div class="k">status</div><div class="v">...</div></div></div>
+  <figcaption style="margin-top:12px">The study is Binance, whose API is geo-blocked from
+  most locations, so the live readout uses Hyperliquid. It is context, not the study
+  sample. The leverage measure needs 30 days of open-interest history; this page starts
+  accumulating its own from your first visit, stored only on this device.</figcaption>
+</section>
+
+<footer>
+  <p><b>Method.</b> Hourly panel of five Binance USD-M perpetuals. An episode is the
+  worst 2% of 6-hour drawdowns in each market, thinned to one per 24 hours. Event time
+  zero is the end of the drawdown window, so no trough is chosen with hindsight. Leverage
+  is open interest over its own trailing 30-day mean, measured before the episode starts.
+  Standard errors are clustered by calendar day, because these five markets fall together
+  and 437 episodes come from only 170 days.</p>
+  <p><b>Two measurement results worth knowing before you try this.</b> At 5-minute
+  frequency the open-interest proxy is noise: it moves with returns at a correlation near
+  zero, and in the worst 5-minute bars open interest is as likely to rise as fall. At
+  hourly frequency the same proxy correlates <span id="corrline">strongly</span> with
+  returns. Separately, open interest divided by volume, the obvious leverage measure,
+  correlates -0.87 with volume itself. It measures how quiet a market is, not how levered.</p>
+  <p><b>Limits.</b> Forced flow is proxied, not observed: true liquidation records are
+  behind a paid feed. Five markets, one venue, two years. Finding 2 does not survive
+  splitting the sample, and is reported as fragile rather than dropped.</p>
+  <p><b>Reproduce.</b> <code>python3 fetch.py &amp;&amp; python3 analyze.py</code>, about
+  240 MB of free public files, no account and no credentials.</p>
+</footer>
+</div>
+
+<script>
+const $=i=>document.getElementById(i), f=(n,d=2)=>n.toFixed(d);
+
+fetch("results.json").then(r=>r.json()).then(R=>{
+  const m=R.meta;
+  $("stamp").textContent=`${m.symbols.length} markets / ${m.from} to ${m.to} / `
+    +`${m.episodes} episodes on ${m.days} days / ${m.hours.toLocaleString()} hours`;
+  const cr=Object.values(R.corr_ret_doi);
+  $("corrline").textContent=`+${f(Math.min(...cr))} to +${f(Math.max(...cr))}`;
+
+  const L=R.lev_oi, LC=R.lev_oi_controlled, D=R.lev_dd, g2=R.reversal_gap["2"];
+  $("findings").innerHTML='<h2>What the data says</h2>'+[
+   ["c-ok","Robust","Leverage built up before a shock predicts how much gets liquidated in it",
+    "Open interest sitting above its own 30-day norm going into a drawdown means far more of it "
+    +"is destroyed during the drawdown. The relationship holds in all five markets separately, "
+    +"in both halves of the sample, and with market fixed effects and drawdown depth controlled.",
+    `b = ${f(L.b)} (t = ${f(L.t,1)}) / with controls ${f(LC.b)} (t = ${f(LC.t,1)}) / `
+    +`moving from the 25th to the 75th percentile of leverage implies `
+    +`${f(Math.abs(L.b)*R.lev_iqr)}pp more open interest destroyed`],
+   ["c-mid","Fragile","The same leverage predicts a deeper fall, but not reliably",
+    "Pooled, elevated leverage going in means a deeper drawdown. Split the sample in half and "
+    +"the effect weakens in both, so it is suggestive rather than established. The economic size "
+    +"is small against a mean drawdown of "+f(R.mean_drawdown)+"%.",
+    `b = ${f(D.b)} (t = ${f(D.t,1)}) pooled / first half t = ${f(R.halves[0].dd.t,1)} / `
+    +`second half t = ${f(R.halves[1].dd.t,1)}`],
+   ["c-nil","Not found","No sign of a price overshoot that comes back",
+    "If forced selling pushed price past what the news warranted, the excess should reverse. "
+    +"Heavy-deleveraging drops do bounce slightly harder in the first two hours, but the gap is "
+    +"within noise and disappears as a continuous relationship. On this proxy and this sample, "
+    +"the mechanical overshoot is not there to find.",
+    `two-hour gap ${g2.b>=0?"+":""}${f(g2.b,3)}pp (t = ${f(g2.t,1)}) / `
+    +`continuous t = ${f(R.reversal_continuous["2"].t,1)}`],
+  ].map(([c,l,h,p,s])=>`<div class="find"><span class="chip ${c}">${l}</span>
+    <div><h3>${h}</h3><p>${p}</p><span class="stat">${s}</span></div></div>`).join("");
+
+  fig1(R); fig2(R);
+
+  const pm=R.per_market.map(p=>`<tr><td>${p.symbol.replace("USDT","")}</td>
+     <td>${p.n}</td><td class="neg">${f(p.b)}</td><td>${f(p.t,2)}</td></tr>`).join("");
+  $("robust").innerHTML=`<thead><tr><th>Market</th><th>Episodes</th>
+    <th>Leverage to OI destroyed</th><th>t</th></tr></thead><tbody>${pm}
+    <tr><td class="dim">first half</td><td>${R.halves[0].n}</td>
+      <td class="neg">${f(R.halves[0].oi.b)}</td><td>${f(R.halves[0].oi.t,2)}</td></tr>
+    <tr><td class="dim">second half</td><td>${R.halves[1].n}</td>
+      <td class="neg">${f(R.halves[1].oi.b)}</td><td>${f(R.halves[1].oi.t,2)}</td></tr>
+    <tr><td><b>pooled, with controls</b></td><td>${R.meta.episodes}</td>
+      <td class="neg"><b>${f(LC.b)}</b></td><td><b>${f(LC.t,2)}</b></td></tr></tbody>`;
+
+  $("worst").innerHTML=`<thead><tr><th>Date</th><th>Market</th><th>Drawdown</th>
+    <th>OI destroyed</th><th>Leverage before</th><th>24h later</th></tr></thead><tbody>`
+    +R.worst.map(w=>`<tr><td>${w.t.slice(0,10)}</td>
+      <td>${w.sym.replace("USDT","")}</td><td class="neg">${f(w.dd)}%</td>
+      <td class="neg">${f(w.oi_destroyed)}%</td><td>${f(w.lev)}x</td>
+      <td class="${w.end<0?"neg":""}">${f(w.end)}%</td></tr>`).join("")+"</tbody>";
+});
+
+function fig1(R){
+  const W=700,H=320,PL=46,PR=14,PT=14,PB=42;
+  const ax=R.path_axis_h, A=R.groups.heavy.path, B=R.groups.light.path;
+  const x0=ax[0], x1=ax[ax.length-1], y0=1, y1=-8;
+  const X=h=>PL+(h-x0)/(x1-x0)*(W-PL-PR);
+  const Y=v=>PT+(y0-v)/(y0-y1)*(H-PT-PB);
+  let g=`<rect class="g-shade" x="${X(-6)}" y="${PT}" width="${X(0)-X(-6)}" height="${H-PT-PB}"/>`;
+  [1,0,-2,-4,-6,-8].forEach(v=>{
+    g+=`<line class="g-line" x1="${PL}" y1="${Y(v)}" x2="${W-PR}" y2="${Y(v)}"/>`
+      +`<text class="g-txt" x="${PL-8}" y="${Y(v)+4}" text-anchor="end">${v}%</text>`;});
+  [-12,-6,0,6,12,18,24].forEach(v=>{
+    g+=`<text class="g-txt" x="${X(v)}" y="${H-PB+18}" text-anchor="middle">${v>0?"+"+v:v}</text>`;});
+  g+=`<line class="g-mark" x1="${X(0)}" y1="${PT}" x2="${X(0)}" y2="${H-PB}"/>`;
+  const poly=(a,c)=>`<polyline class="${c}" points="${a.map((v,i)=>X(ax[i]).toFixed(1)+","+Y(v).toFixed(1)).join(" ")}"/>`;
+  g+=poly(B,"s-other")+poly(A,"s-forced")
+    +`<circle class="d-forced" cx="${X(24)}" cy="${Y(A[A.length-1])}" r="3.5"/>`
+    +`<circle class="d-other" cx="${X(24)}" cy="${Y(B[B.length-1])}" r="3.5"/>`
+    +`<text class="g-txt" x="${X(-3)}" y="${PT+14}" text-anchor="middle">drawdown window</text>`
+    +`<text class="g-txt" x="${(PL+W-PR)/2}" y="${H-4}" text-anchor="middle">hours from end of drawdown</text>`;
+  $("fig1").innerHTML=g;
+  const h=R.groups.heavy,l=R.groups.light;
+  $("cap1").textContent=`Average cumulative return, normalised to the price six hours before `
+    +`the drawdown begins. Episodes are split by how much open interest was destroyed: `
+    +`${f(h.oi_destroyed)}% in the heaviest third (n=${h.n}) against ${f(l.oi_destroyed)}% in the `
+    +`lightest (n=${l.n}). Heavy-deleveraging episodes fall further, to ${f(h.drawdown)}% against `
+    +`${f(l.drawdown)}%, and both are still down a day later. The small rebound in the first two `
+    +`hours is the only trace of a mechanical overshoot, and it is within noise.`;
+}
+
+function fig2(R){
+  const W=700,H=300,PL=46,PR=14,PT=16,PB=54, q=R.by_leverage;
+  const lo=Math.min(...q.map(d=>d.oi_destroyed))*1.2, bw=(W-PL-PR)/q.length;
+  const Y=v=>PT+(0-v)/(0-lo)*(H-PT-PB);
+  let g="";
+  [0,-2,-4,-6,-8].filter(v=>v>=lo).forEach(v=>{
+    g+=`<line class="${v?"g-mark":"g-line"}" x1="${PL}" y1="${Y(v)}" x2="${W-PR}" y2="${Y(v)}"/>`
+      +`<text class="g-txt" x="${PL-8}" y="${Y(v)+4}" text-anchor="end">${v}%</text>`;});
+  q.forEach((d,i)=>{const x=PL+i*bw+bw*.22, w=bw*.56;
+    g+=`<rect class="bar" x="${x}" y="${Y(0)}" width="${w}" height="${Math.max(1,Y(d.oi_destroyed)-Y(0))}"
+         opacity="${(.45+i*.13).toFixed(2)}" rx="2"/>`
+      +`<text class="g-val" x="${x+w/2}" y="${Y(d.oi_destroyed)+15}" text-anchor="middle">${f(d.oi_destroyed,1)}</text>`
+      +`<text class="g-txt-fg" x="${x+w/2}" y="${H-PB+20}" text-anchor="middle">${f(d.lev)}x</text>`
+      +`<text class="g-txt" x="${x+w/2}" y="${H-PB+35}" text-anchor="middle">n=${d.n}</text>`;});
+  g+=`<text class="g-txt" x="${(PL+W-PR)/2}" y="${H-4}" text-anchor="middle">open interest before the episode, relative to its 30-day norm</text>`;
+  $("fig2").innerHTML=g;
+  $("cap2").textContent=`Open interest destroyed during the episode, by how stretched open `
+    +`interest already was going in. Markets entering a drawdown with open interest at `
+    +`${f(q[q.length-1].lev)}x their 30-day norm shed ${f(Math.abs(q[q.length-1].oi_destroyed),1)}% `
+    +`of it, against ${f(Math.abs(q[0].oi_destroyed),1)}% for those entering at ${f(q[0].lev)}x. `
+    +`Leverage is measured before the fall begins, so this is known in advance.`;
+}
+
+// live context, and start accumulating an OI baseline on this device
+const KEY="lbc.oi.v1";
+fetch("https://api.hyperliquid.xyz/info",{method:"POST",
+  headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"metaAndAssetCtxs"})})
+ .then(r=>r.json()).then(([meta,ctx])=>{
+  const rows=meta.universe.map((u,i)=>({s:u.name,
+      oi:+ctx[i].openInterest*+ctx[i].markPx, fund:+ctx[i].funding*24*365*100}))
+    .filter(r=>r.oi>1e6).sort((a,b)=>b.oi-a.oi);
+  const tot=rows.reduce((a,r)=>a+r.oi,0);
+  let days=0;
+  try{const h=JSON.parse(localStorage.getItem(KEY))||[];
+      const today=new Date().toISOString().slice(0,10);
+      if(!h.length||h[h.length-1][0]!==today){h.push([today,Math.round(tot/1e6)]);
+        localStorage.setItem(KEY,JSON.stringify(h.slice(-40)));}
+      days=h.length;}catch(e){}
+  const hot=rows.filter(r=>Math.abs(r.fund)>30).length;
+  $("live").innerHTML=[
+    ["venue open interest","$"+(tot/1e9).toFixed(2)+"bn"],
+    ["markets",rows.length],
+    ["funding past 30%/yr either way",hot],
+    ["baseline",days+" / 30 days"],
+  ].map(([k,v])=>`<div class="lv"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+ }).catch(()=>{$("live").innerHTML='<div class="lv"><div class="k">live feed</div>'
+    +'<div class="v" style="font-size:13px">unavailable</div></div>';});
+</script>

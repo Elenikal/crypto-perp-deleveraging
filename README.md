@@ -1,46 +1,56 @@
-# Forced flow and price impact in crypto perpetual futures
+# Leverage Before the Crash
 
-How much of a crypto drawdown is information, and how much is the margin
-engine selling into itself?
+When a crypto market falls hard, how much of it is the margin engine rather than
+the news? Open interest destroyed during the fall is the trace forced selling
+leaves behind.
+
+Live results page: published as a Claude artifact (`paper.html` + `results.json`).
+
+## Findings
+
+| | Result | Evidence |
+|---|---|---|
+| **Robust** | Leverage built up before a shock predicts how much is liquidated in it | b = -2.79 (t = -5.2); holds in all 5 markets, both sample halves, with FE and depth controlled |
+| **Fragile** | The same leverage predicts a deeper fall | b = -0.73 (t = -2.8) pooled, weakens in both halves |
+| **Not found** | A mechanical overshoot that reverses | two-hour gap +0.40pp (t = 1.8), gone as a continuous relationship |
+
+## Two measurement results
+
+Both cost real time to discover, so they are recorded here.
+
+- At **5-minute** frequency the open-interest proxy is noise: near-zero correlation
+  with returns, and in the worst bars open interest is as likely to rise as fall.
+  At **hourly** frequency the same proxy correlates +0.66 to +0.76. Hence hourly.
+- **OI divided by volume**, the obvious leverage measure, correlates **-0.87 with
+  volume**. It measures how quiet a market is, not how levered. Leverage is
+  therefore open interest against its own trailing 30-day mean.
 
 ## Data
 
-Hyperliquid. Public REST for candles and funding (free). S3 archive for
-liquidation buckets and position-level fills (requester-pays).
+Binance USD-M perpetuals from `data.binance.vision`: free, public, no account and
+no credentials. 5 markets, Oct 2024 to Aug 2026, hourly, about 240 MB.
 
-**Set an AWS budget alert at $1 before any S3 call.**
+Binance's live API is geo-blocked (HTTP 451) from most locations, so the live
+strip on the results page uses Hyperliquid instead, labelled as context rather
+than sample.
 
-## Staging
+## Method
 
-| Stage | Cost | What |
-|---|---|---|
-| 0 | $0 | REST candles + funding history. No AWS account needed. |
-| 1 | cents | 5-min aggregated liquidation buckets from S3. |
-| 2 | dollars | One day of column-pruned fills, for the margin-model gate. |
+An episode is the worst 2% of 6-hour drawdowns per market, thinned to one per 24
+hours. Event time zero is the end of the drawdown window, so no trough is picked
+with hindsight. Standard errors are clustered by calendar day: 437 episodes come
+from only 170 days, and these markets fall together.
 
-Stage 2 is conditional on 0 and 1 looking good.
+## Reproduce
 
-## The Stage 2 gate
+    python3 fetch.py      # free public files, no credentials
+    python3 analyze.py    # writes results.json
 
-Take ten accounts liquidated on one day, pull their positions from the prior
-day's snapshot, compute the implied liquidation price from
-`MM = 1 / (2 * maxLeverage)`, and compare against the `markPx` recorded in the
-fill's `liquidation` object. If the computed trigger reproduces the observed
-trigger, the cascade engine rests on validated ground.
+`probe.py` is an earlier exploratory tool: free Hyperliquid and Binance pulls,
+plus requester-pays S3 listing with cost guards. Not needed for the study above.
+`monitor.html` is a separate live leverage dashboard.
 
-## Usage
+## Limits
 
-    pip install boto3
-    python3 probe.py candles --coins BTC ETH SOL --days 3 --interval 5m
-    python3 probe.py funding --coins BTC ETH SOL --days 30
-    python3 probe.py ls --bucket reservoir --prefix '' --dry-run
-
-Every S3 command sums object bytes and prints the cost before transferring,
-and refuses to download without `--confirm` and an explicit `--budget-mib`.
-
-## Open questions
-
-- Does the bulk fills schema carry `startPosition`, or is it REST-only?
-- Do daily snapshots record margin mode? Cross vs isolated changes the ladder.
-- Do account values include HLP vault equity?
-- Does spot balance back perp margin? Believed no; confirm.
+Forced flow is proxied, not observed: true liquidation records sit behind a paid
+feed. Five markets, one venue, two years.

@@ -7,3 +7,5 @@ data/
 .aws/
 __pycache__/
 *.pyc
+.venv/
+fetch.log
