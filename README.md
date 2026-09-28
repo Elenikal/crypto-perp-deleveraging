@@ -57,6 +57,28 @@ if you are not using `run.sh`.
 plus requester-pays S3 listing with cost guards. Not needed for the study above.
 `monitor.html` is a separate live leverage dashboard.
 
+## Deploy
+
+The page is published by GitHub Pages and rebuilt by GitHub Actions
+(`.github/workflows/deploy.yml`). The workflow re-downloads any new days, re-runs
+the analysis and redeploys, on every push to `main` and every Monday at 06:00 UTC.
+It can also be run by hand from the Actions tab.
+
+Published paths:
+
+| path | page |
+|---|---|
+| `/` | the study, `paper.html` |
+| `/monitor.html` | the live venue readout |
+| `/results.json` | the numbers behind the page |
+
+One-time setup after the first push: **Settings > Pages > Source > GitHub Actions**.
+Nothing else, and no secrets: every data source is public and unauthenticated.
+
+`fetch.py` tracks up to two days ago by default, using monthly Binance files for
+complete months and daily files for the month in progress. Set `END_DATE` to pin
+it to a fixed day.
+
 ## Limits
 
 Forced flow is proxied, not observed: true liquidation records sit behind a paid

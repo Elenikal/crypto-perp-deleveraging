@@ -1,0 +1,71 @@
+name: Refresh data and deploy
+
+# Rebuilds the study from free public data and republishes the page.
+# Weekly is deliberate: the source files are daily, and the findings are about
+# two years of episodes, so a nightly run would burn CI for no new information.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"        # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # ~250 MB of Binance files. Cached so only new days are downloaded;
+      # run_id in the key means each run saves a fresh copy and restores the
+      # most recent one.
+      - name: Cache downloaded data
+        uses: actions/cache@v4
+        with:
+          path: raw
+          key: raw-${{ hashFiles('fetch.py') }}-${{ github.run_id }}
+          restore-keys: raw-${{ hashFiles('fetch.py') }}-
+
+      - name: Fetch
+        run: python fetch.py
+
+      - name: Analyse
+        run: python analyze.py
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp paper.html _site/index.html
+          cp monitor.html _site/monitor.html
+          cp results.json _site/results.json
+          ls -la _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
