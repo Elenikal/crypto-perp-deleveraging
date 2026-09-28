@@ -43,8 +43,15 @@ from only 170 days, and these markets fall together.
 
 ## Reproduce
 
-    python3 fetch.py      # free public files, no credentials
-    python3 analyze.py    # writes results.json
+    ./run.sh
+
+That is the whole thing: it creates `.venv`, installs numpy and pandas, downloads
+about 240 MB of free public files (cached, so re-runs skip them), and writes
+`results.json`.
+
+`fetch.py` uses only the standard library and runs under any `python3`.
+`analyze.py` needs numpy and pandas, so run it as `.venv/bin/python analyze.py`
+if you are not using `run.sh`.
 
 `probe.py` is an earlier exploratory tool: free Hyperliquid and Binance pulls,
 plus requester-pays S3 listing with cost guards. Not needed for the study above.

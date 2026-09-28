@@ -16,8 +16,15 @@ shape the design and are reported as findings in their own right:
 
 Data: Binance USD-M perpetuals, data.binance.vision, free and public.
 """
-import json, os, glob
-import numpy as np, pandas as pd
+import json, os, glob, sys
+
+try:
+    import numpy as np, pandas as pd
+except ImportError:
+    sys.exit("analyze.py needs numpy and pandas, which live in this project's .venv.\n"
+             "Run  ./run.sh  from the project directory, or set it up once with:\n"
+             "  python3 -m venv .venv && .venv/bin/pip install -r requirements.txt\n"
+             "then run  .venv/bin/python analyze.py")
 
 # macOS BLAS emits spurious divide/overflow warnings on finite inputs;
 # inputs are checked for finiteness before every regression.
