@@ -1,0 +1,227 @@
+<title>Perp Leverage Monitor</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky instrument header, aggregate tiles, then one dense ranked table. */
+:root{
+  --bg:#f2f4f7; --surface:#ffffff; --line:#dde2e9;
+  --fg:#111720; --muted:#5b6673; --accent:#0d6b75;
+  --calm:#2e7d55; --warn:#a9680a; --hot:#bb3a2c;
+  --calm-bg:#e6f2ea; --warn-bg:#fbf0dc; --hot-bg:#fbe7e4; --on-accent:#ffffff;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1217; --surface:#161c24; --line:#28303a;
+  --fg:#e4e9ef; --muted:#8a95a3; --accent:#3fb3bd;
+  --calm:#54c489; --warn:#e0a648; --hot:#f07264;
+  --calm-bg:#13291e; --warn-bg:#2c2415; --hot-bg:#2e1917; --on-accent:#08131a;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#161c24; --line:#28303a;
+  --fg:#e4e9ef; --muted:#8a95a3; --accent:#3fb3bd;
+  --calm:#54c489; --warn:#e0a648; --hot:#f07264;
+  --calm-bg:#13291e; --warn-bg:#2c2415; --hot-bg:#2e1917; --on-accent:#08131a;
+  color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0;
+     padding-block:0 32px;padding-inline:16px;line-height:1.45}
+.wrap{max-width:1040px;margin:0 auto}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;
+  background:var(--bg);padding-block:16px 12px;border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}
+h1{font-size:17px;font-weight:600;margin:0;letter-spacing:-.01em}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.02em}
+.spacer{flex:1 1 auto;min-width:0}
+button{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--surface);color:var(--fg);border:1px solid var(--line);
+  border-radius:4px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:6px;
+  overflow:hidden;margin-block:16px}
+.tile{background:var(--surface);padding:12px 14px;min-width:0}
+.tile .k{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-family:var(--mono);font-size:23px;font-weight:500;margin-top:4px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tile .n{font-size:11px;color:var(--muted);margin-top:2px}
+#spark{display:block;width:100%;height:34px;margin-top:6px}
+
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);
+  white-space:nowrap;font-weight:500}
+th:first-child,td:first-child{text-align:left;padding-left:14px}
+td{font-family:var(--mono);font-size:12.5px;text-align:right;padding:8px 10px;
+  border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+.sym{font-weight:600;font-size:13px;font-family:var(--sans)}
+.stripe{border-left:3px solid transparent}
+.s-calm{border-left-color:var(--calm)}
+.s-warn{border-left-color:var(--warn)}
+.s-hot{border-left-color:var(--hot)}
+.pill{display:inline-block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 7px;border-radius:3px;font-weight:600}
+.p-calm{background:var(--calm-bg);color:var(--calm)}
+.p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-hot{background:var(--hot-bg);color:var(--hot)}
+.up{color:var(--calm)} .dn{color:var(--hot)} .dim{color:var(--muted)}
+footer{margin-top:18px;font-size:12px;color:var(--muted);max-width:66ch}
+footer code{font-family:var(--mono);font-size:11px}
+footer b{color:var(--fg);font-weight:600}
+@media (prefers-reduced-motion:no-preference){.pulse{animation:f .5s ease}}
+@keyframes f{from{opacity:.35}to{opacity:1}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <h1>Perp Leverage Monitor</h1>
+    <div class="sub" id="stamp">loading Hyperliquid…</div>
+  </div>
+  <div class="spacer"></div>
+  <button id="sortBtn" aria-pressed="false">sort: size</button>
+  <button id="allBtn" aria-pressed="false">top 25</button>
+  <button id="refresh">refresh</button>
+</header>
+
+<div class="tiles">
+  <div class="tile"><div class="k">Venue open interest</div><div class="v" id="t-oi">—</div>
+    <svg id="spark" viewBox="0 0 300 34" preserveAspectRatio="none" aria-label="Open interest since you started watching"></svg>
+    <div class="n" id="t-oi-n">since you started watching</div></div>
+  <div class="tile"><div class="k">Funding, OI-weighted</div><div class="v" id="t-fund">—</div>
+    <div class="n" id="t-fund-n">annualised</div></div>
+  <div class="tile"><div class="k">Crowded markets</div><div class="v" id="t-crowd">—</div>
+    <div class="n">funding past ±30%/yr</div></div>
+  <div class="tile"><div class="k">Widest dislocation</div><div class="v" id="t-disl">—</div>
+    <div class="n" id="t-disl-n">mark vs oracle</div></div>
+</div>
+
+<div class="tablebox">
+<table><thead><tr>
+  <th>Market</th><th>Open interest</th><th>Δ since last</th><th>Funding %/yr</th>
+  <th>OI ÷ 24h vol</th><th>Premium bp</th><th>Max lev</th><th>24h</th><th>State</th>
+</tr></thead><tbody id="rows">
+  <tr><td colspan="9" class="dim" style="text-align:center;padding:28px">Fetching live data…</td></tr>
+</tbody></table>
+</div>
+
+<footer>
+  <p><b>State</b> is a transparent score, not a model. A market scores one point for
+  each of: funding beyond ±30%/yr, funding beyond ±75%/yr, open interest above 1.5× its
+  own 24h volume, above 3×, an absolute mark-to-oracle premium over 20bp, and a venue
+  leverage cap of 20× or more. <span class="pill p-calm">calm</span> is 0–1,
+  <span class="pill p-warn">elevated</span> 2–3, <span class="pill p-hot">stressed</span> 4+.</p>
+  <p>The measure that matters most is <b>OI ÷ 24h volume</b>: it asks how large the
+  standing positions are relative to the flow that would have to absorb them if they
+  were force-closed. High funding says the crowd is leaning one way. High OI against
+  thin volume says there is no one on the other side.</p>
+  <p>Live from Hyperliquid's public API, straight from your browser. Nothing is stored
+  anywhere but this device, and the Δ column compares against the last time you opened
+  this page.</p>
+</footer>
+</div>
+
+<script>
+const API="https://api.hyperliquid.xyz/info", KEY="plm.snap.v1", HIST="plm.hist.v1";
+let sortRisk=false, showAll=false, last=null, rows=[];
+const $=id=>document.getElementById(id);
+const usd=n=>n>=1e9?"$"+(n/1e9).toFixed(2)+"bn":n>=1e6?"$"+(n/1e6).toFixed(0)+"m":"$"+(n/1e3).toFixed(0)+"k";
+const ls={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+          set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+function score(r){let s=0;
+  const f=Math.abs(r.fund); if(f>30)s++; if(f>75)s++;
+  if(r.ratio>1.5)s++; if(r.ratio>3)s++;
+  if(Math.abs(r.prem)>20)s++;
+  if(r.lev>=20)s++;
+  return s;}
+const band=s=>s>=4?"hot":s>=2?"warn":"calm";
+
+async function load(){
+  const res=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({type:"metaAndAssetCtxs"})});
+  const [meta,ctx]=await res.json();
+  const prev=ls.get(KEY);
+  rows=meta.universe.map((u,i)=>{
+    const c=ctx[i]; if(!c||!c.markPx) return null;
+    const mark=+c.markPx, oi=+c.openInterest*mark, vol=+(c.dayNtlVlm||0);
+    if(oi<2e5) return null;
+    const r={sym:u.name, lev:u.maxLeverage, oi,
+      fund:+c.funding*24*365*100,
+      ratio: vol>0 ? oi/vol : 99,
+      prem:+(c.premium||0)*10000,
+      chg: c.prevDayPx ? (mark/+c.prevDayPx-1)*100 : 0,
+      d: prev&&prev.oi&&prev.oi[u.name] ? oi/prev.oi[u.name]-1 : null};
+    r.s=score(r); return r;
+  }).filter(Boolean);
+
+  const total=rows.reduce((a,r)=>a+r.oi,0);
+  const wf=rows.reduce((a,r)=>a+r.fund*r.oi,0)/total;
+  const crowd=rows.filter(r=>Math.abs(r.fund)>30).length;
+  const worst=rows.reduce((a,r)=>Math.abs(r.prem)>Math.abs(a.prem)?r:a,rows[0]);
+
+  $("t-oi").textContent=usd(total);
+  $("t-fund").textContent=(wf>=0?"+":"")+wf.toFixed(1)+"%";
+  $("t-fund").className="v "+(Math.abs(wf)>30?"dn":"");
+  $("t-crowd").textContent=crowd+" / "+rows.length;
+  $("t-disl").textContent=(worst.prem>=0?"+":"")+worst.prem.toFixed(0)+"bp";
+  $("t-disl-n").textContent=worst.sym+", mark vs oracle";
+
+  if(prev&&prev.total){const d=total/prev.total-1;
+    const ago=Math.round((Date.now()-prev.t)/36e5);
+    $("t-oi-n").innerHTML=`<span class="${d>=0?'up':'dn'}">${d>=0?'+':''}${(d*100).toFixed(1)}%</span>`
+      +` since last opened ${ago<1?"under an hour":ago+"h"} ago`;}
+
+  const h=(ls.get(HIST)||[]).concat([[Date.now(),Math.round(total/1e6)]]).slice(-240);
+  ls.set(HIST,h); spark(h);
+  ls.set(KEY,{t:Date.now(),total,oi:Object.fromEntries(rows.map(r=>[r.sym,r.oi]))});
+
+  $("stamp").textContent="Hyperliquid · "+rows.length+" markets · "
+    +new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  render();
+}
+
+function spark(h){
+  const el=$("spark");
+  if(h.length<2){el.innerHTML='<text x="0" y="22" font-size="10" fill="var(--muted)" font-family="monospace">building history…</text>';return;}
+  const v=h.map(p=>p[1]), lo=Math.min(...v), hi=Math.max(...v), pad=(hi-lo)*.15||1;
+  const y=n=>31-((n-lo+pad)/((hi-lo)+pad*2))*28;
+  const x=i=>i/(h.length-1)*298+1;
+  const pts=v.map((n,i)=>x(i).toFixed(1)+","+y(n).toFixed(1)).join(" ");
+  el.innerHTML=`<polygon points="1,34 ${pts} 299,34" fill="var(--accent)" opacity=".1"/>`
+    +`<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`
+    +`<circle cx="${x(v.length-1).toFixed(1)}" cy="${y(v[v.length-1]).toFixed(1)}" r="2.5" fill="var(--accent)"/>`;
+}
+
+function render(){
+  const list=[...rows].sort((a,b)=>sortRisk?(b.s-a.s||b.oi-a.oi):b.oi-a.oi);
+  const show=showAll?list:list.slice(0,25);
+  $("rows").innerHTML=show.map(r=>{
+    const b=band(r.s);
+    return `<tr class="pulse"><td class="sym stripe s-${b}">${r.sym}</td>
+      <td>${usd(r.oi)}</td>
+      <td class="${r.d==null?'dim':r.d>=0?'up':'dn'}">${r.d==null?"—":(r.d>=0?"+":"")+(r.d*100).toFixed(1)+"%"}</td>
+      <td class="${Math.abs(r.fund)>30?(r.fund>0?'dn':'up'):''}">${r.fund>=0?"+":""}${r.fund.toFixed(1)}</td>
+      <td class="${r.ratio>1.5?'dn':''}">${r.ratio>=99?"—":r.ratio.toFixed(2)}</td>
+      <td class="${Math.abs(r.prem)>20?'dn':''}">${r.prem>=0?"+":""}${r.prem.toFixed(0)}</td>
+      <td class="dim">${r.lev}×</td>
+      <td class="${r.chg>=0?'up':'dn'}">${r.chg>=0?"+":""}${r.chg.toFixed(1)}%</td>
+      <td><span class="pill p-${b}">${b}</span></td></tr>`;}).join("");
+}
+
+$("refresh").onclick=()=>{$("stamp").textContent="refreshing…";load().catch(err)};
+$("sortBtn").onclick=e=>{sortRisk=!sortRisk;e.target.setAttribute("aria-pressed",sortRisk);
+  e.target.textContent="sort: "+(sortRisk?"risk":"size");render()};
+$("allBtn").onclick=e=>{showAll=!showAll;e.target.setAttribute("aria-pressed",showAll);
+  e.target.textContent=showAll?"all markets":"top 25";render()};
+function err(e){$("stamp").textContent="Could not reach Hyperliquid. Tap refresh.";console.error(e)}
+load().catch(err);
+setInterval(()=>load().catch(err),60000);
+</script>
