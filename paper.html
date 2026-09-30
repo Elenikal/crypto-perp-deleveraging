@@ -151,7 +151,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--paper);
   hourly frequency the same proxy correlates <span id="corrline">strongly</span> with
   returns. Separately, open interest divided by volume, the obvious leverage measure,
   correlates -0.87 with volume itself. It measures how quiet a market is, not how levered.</p>
-  <p><b>Limits.</b> Forced flow is proxied, not observed: true liquidation records are
+  <p><b>Ruling out the obvious objection.</b> The main result would be hollow if stretched open interest simply reverted on its own. It does not: across every non-overlapping six-hour window in the sample, leverage predicts open-interest destruction only when a drawdown happens, and the interaction survives controlling for the size of the price move. <code>mean_reversion.py</code> runs that test on its own.</p>\n  <p><b>Limits.</b> Forced flow is proxied, not observed: true liquidation records are
   behind a paid feed. Five markets, one venue, two years. Finding 2 does not survive
   splitting the sample, and is reported as fragile rather than dropped.</p>
   <p><b>Reproduce.</b> <code>python3 fetch.py &amp;&amp; python3 analyze.py</code>, about
@@ -169,15 +169,25 @@ fetch("results.json").then(r=>r.json()).then(R=>{
   const cr=Object.values(R.corr_ret_doi);
   $("corrline").textContent=`+${f(Math.min(...cr))} to +${f(Math.max(...cr))}`;
 
-  const L=R.lev_oi, LC=R.lev_oi_controlled, D=R.lev_dd, g2=R.reversal_gap["2"];
+  const L=R.lev_oi, LC=R.lev_oi_controlled, D=R.lev_dd, g2=R.reversal_gap["2"], M=R.mean_reversion;
   $("findings").innerHTML='<h2>What the data says</h2>'+[
-   ["c-ok","Robust","Leverage built up before a shock predicts how much gets liquidated in it",
-    "Open interest sitting above its own 30-day norm going into a drawdown means far more of it "
-    +"is destroyed during the drawdown. The relationship holds in all five markets separately, "
-    +"in both halves of the sample, and with market fixed effects and drawdown depth controlled.",
+   ["c-ok","Robust","Leverage sits inert until a shock arrives, then decides how much is destroyed",
+    "Open interest above its own 30-day norm does nothing measurable in calm periods. When a "
+    +"drawdown comes, that same leverage determines how much of it is wiped out. The relationship "
+    +"holds in all five markets separately, in both halves of the sample, and with market fixed "
+    +"effects and drawdown depth controlled.",
     `b = ${f(L.b)} (t = ${f(L.t,1)}) / with controls ${f(LC.b)} (t = ${f(LC.t,1)}) / `
     +`moving from the 25th to the 75th percentile of leverage implies `
     +`${f(Math.abs(L.b)*R.lev_iqr)}pp more open interest destroyed`],
+   ["c-ok","Ruled out","It is not mean reversion in open interest",
+    "Stretched open interest might simply drift back down whatever prices do, which would make "
+    +"the result mechanical rather than about crashes. Across "+M.windows.toLocaleString()
+    +" non-overlapping six-hour windows, leverage predicts nothing in calm periods and a great "
+    +"deal in crashes. The gap survives holding the size of the price move constant: the same "
+    +"fall destroys more open interest when leverage was higher going in.",
+    `calm b = ${f(M.calm.b)} (t = ${f(M.calm.t,1)}) / crash b = ${f(M.crash.b)} `
+    +`(t = ${f(M.crash.t,1)}) / interaction t = ${f(M.interaction.t,1)} / `
+    +`holding the price move fixed t = ${f(M.interaction_controlled.t,1)}`],
    ["c-mid","Fragile","The same leverage predicts a deeper fall, but not reliably",
     "Pooled, elevated leverage going in means a deeper drawdown. Split the sample in half and "
     +"the effect weakens in both, so it is suggestive rather than established. The economic size "

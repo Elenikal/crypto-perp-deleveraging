@@ -149,6 +149,33 @@ if __name__ == "__main__":
               "drawdown":float(E.dd[dq==q].mean()), "n":int((dq==q).sum())} for q in range(5)]
 
     iqr = float(E.lev.quantile(.75) - E.lev.quantile(.25))
+    # Is the leverage result just mean reversion in open interest? Take every
+    # non-overlapping window, not only the bad ones, and ask whether leverage
+    # bites harder in crashes than in calm periods.
+    wins = []
+    for s_ in SYMS:
+        h = hs[s_]; oi = h.oi.values; lv = h.lev.values
+        c = np.log(h.close.values)*100; tt = h.t.values
+        for i in range(WIN, len(h), WIN):
+            if not np.isfinite(lv[i-WIN]):
+                continue
+            d = 100*(oi[i]/oi[i-WIN] - 1)
+            if abs(d) > 20:
+                continue
+            wins.append({"sym":s_, "t":tt[i], "ret":c[i]-c[i-WIN], "doi":d, "lev":lv[i-WIN]})
+    W = pd.DataFrame(wins)
+    W["day"] = pd.to_datetime(W.t).dt.floor("D").astype(str)
+    W["crash"] = (W.ret <= W.groupby("sym").ret.transform(lambda x: x.quantile(.02))).astype(float)
+    W["lxc"] = W.lev*W.crash
+    cm, cs = W.crash == 0, W.crash == 1
+    mr = {"windows": int(len(W)), "crashes": int(cs.sum()),
+          "calm":  clust(W.doi[cm], W[["lev"]][cm], ["lev"], W.day[cm])["lev"],
+          "crash": clust(W.doi[cs], W[["lev"]][cs], ["lev"], W.day[cs])["lev"],
+          "interaction": clust(W.doi, W[["lev","crash","lxc"]],
+                               ["lev","crash","lxc"], W.day)["lxc"],
+          "interaction_controlled": clust(W.doi, W[["lev","crash","lxc","ret"]],
+                               ["lev","crash","lxc","ret"], W.day)["lxc"]}
+
     res = {
      "meta":{"title":"Leverage buildup and forced deleveraging in crypto perpetuals",
              "venue":"Binance USD-M perpetuals","source":"data.binance.vision (free, public)",
@@ -168,6 +195,7 @@ if __name__ == "__main__":
      "reversal_gap":gap, "reversal_continuous":cont,
      "lev_oi":lev_oi, "lev_oi_controlled":lev_oi_c, "lev_dd":lev_dd,
      "per_market":permkt, "halves":halves, "by_leverage":bylev,
+     "mean_reversion":mr,
      "lev_iqr":iqr, "mean_drawdown":float(E.dd.mean()),
      "worst":E.nsmallest(8,"dd")[["t","sym","dd","oi_destroyed","end","lev"]]
               .round(3).to_dict("records"),
@@ -186,6 +214,12 @@ if __name__ == "__main__":
     print(f"\nFINDING 2  leverage -> drawdown depth  b={lev_dd['b']:+.2f} (t={lev_dd['t']:+.2f})")
     for hh in halves:
         print(f"  {hh['half']:6s} half: t={hh['dd']['t']:+.2f}  (fragile)")
+    print("\nRULED OUT  mean reversion: leverage bites only in crashes")
+    print(f"  calm  b={mr['calm']['b']:+.2f} (t={mr['calm']['t']:+.2f})   "
+          f"crash b={mr['crash']['b']:+.2f} (t={mr['crash']['t']:+.2f})")
+    print(f"  interaction b={mr['interaction']['b']:+.2f} (t={mr['interaction']['t']:+.2f})"
+          f"   with return control t={mr['interaction_controlled']['t']:+.2f}")
+
     print("\nFINDING 3  mechanical overshoot and reversal: not detected")
     for k in ("1","2","4","24"):
         print(f"  +{k:>2}h  group gap {gap[k]['b']:+.3f}pp (t={gap[k]['t']:+.2f})   "
